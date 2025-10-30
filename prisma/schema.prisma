@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PolymarketMarket {
+  id          String                @id
+  title       String
+  category    String
+  yesPrice    Float
+  noPrice     Float
+  volume      Float
+  lastUpdated DateTime
+  createdAt   DateTime              @default(now())
+  links       NarrativeMarketLink[]
+
+  @@index([category])
+  @@index([lastUpdated])
+}
+
+model NewsArticle {
+  id          String     @id @default(cuid())
+  title       String
+  url         String     @unique
+  topic       String
+  source      String
+  publishedAt DateTime
+  sentiment   Float
+  summary     String?
+  embedding   String?
+  narrativeId String?
+  createdAt   DateTime   @default(now())
+  narrative   Narrative? @relation(fields: [narrativeId], references: [id])
+
+  @@index([topic])
+  @@index([publishedAt])
+  @@index([narrativeId])
+}
+
+model SocialPost {
+  id          String     @id @default(cuid())
+  content     String
+  author      String
+  topic       String
+  sentiment   Float
+  engagement  Int
+  embedding   String?
+  postUrl     String?
+  narrativeId String?
+  createdAt   DateTime   @default(now())
+  narrative   Narrative? @relation(fields: [narrativeId], references: [id])
+
+  @@index([topic])
+  @@index([createdAt])
+  @@index([narrativeId])
+}
+
+model Narrative {
+  id           String                @id @default(cuid())
+  title        String
+  topic        String
+  keywords     String[]
+  avgSentiment Float
+  embedding    String?
+  articleCount Int                   @default(0)
+  postCount    Int                   @default(0)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  links        NarrativeMarketLink[]
+  articles     NewsArticle[]
+  posts        SocialPost[]
+
+  @@index([topic])
+  @@index([createdAt])
+  @@index([avgSentiment])
+}
+
+model NarrativeMarketLink {
+  id          String           @id @default(cuid())
+  narrativeId String
+  marketId    String
+  similarity  Float
+  createdAt   DateTime         @default(now())
+  market      PolymarketMarket @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  narrative   Narrative        @relation(fields: [narrativeId], references: [id], onDelete: Cascade)
+
+  @@unique([narrativeId, marketId])
+  @@index([similarity])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  topic     String
+  metadata  String?
+  sent      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([sent])
+  @@index([createdAt])
+}
+
+model TelegramSubscriber {
+  id        String   @id @default(cuid())
+  chatId    String   @unique
+  username  String?
+  topics    String[]
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([active])
+}
