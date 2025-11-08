@@ -1,43 +1,46 @@
 // app/api/market-history/[marketId]/route.ts
 // Get historical data for a specific market
 
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { marketId: string } }
+  context: { params: { marketId: string } }
 ) {
   try {
+    const { marketId } = context.params;
+
     const { searchParams } = new URL(request.url);
-    const hours = parseInt(searchParams.get('hours') || '96'); // Default 4 days
+    const hours = parseInt(searchParams.get("hours") || "96"); // Default 4 days
 
     const history = await prisma.marketSnapshot.findMany({
       where: {
-        marketId: params.marketId,
+        marketId,
         capturedAt: {
-          gte: new Date(Date.now() - hours * 60 * 60 * 1000)
-        }
+          gte: new Date(Date.now() - hours * 60 * 60 * 1000),
+        },
       },
-      orderBy: { capturedAt: 'asc' }
+      orderBy: { capturedAt: "asc" },
     });
 
     const market = await prisma.market.findUnique({
-      where: { id: params.marketId }
+      where: { id: marketId },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       market,
       history,
       dataPoints: history.length,
-      timeRange: `${hours} hours`
+      timeRange: `${hours} hours`,
     });
   } catch (error) {
-    console.error('Error fetching market history:', error);
+    console.error("Error fetching market history:", error);
+
     return NextResponse.json(
-      { error: 'Failed to fetch market history' },
+      { error: "Failed to fetch market history" },
       { status: 500 }
     );
   }
