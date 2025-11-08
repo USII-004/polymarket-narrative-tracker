@@ -39,27 +39,52 @@ async function fetchPolymarketData() {
       console.log(`   Found ${relevantMarkets.length} ${category} markets`);
 
       for (const market of relevantMarkets) {
-        await prisma.polymarketMarket.upsert({
-          where: { id: market.id },
-          update: {
-            title: market.question,
-            category,
-            yesPrice: parseFloat(market.outcomePrices?.[0] || '0.5'),
-            noPrice: parseFloat(market.outcomePrices?.[1] || '0.5'),
-            volume: parseFloat(market.volume || '0'),
-            lastUpdated: new Date(),
-          },
-          create: {
-            id: market.id,
-            title: market.question,
-            category,
-            yesPrice: parseFloat(market.outcomePrices?.[0] || '0.5'),
-            noPrice: parseFloat(market.outcomePrices?.[1] || '0.5'),
-            volume: parseFloat(market.volume || '0'),
-            lastUpdated: new Date(),
-          },
-        });
-        totalFetched++;
+        // Parse prices with proper fallback for NaN values
+        let yesPrice = parseFloat(market.outcomePrices?.[0] || '0.5');
+        let noPrice = parseFloat(market.outcomePrices?.[1] || '0.5');
+        let volume = parseFloat(market.volume || '0');
+        
+        // Handle NaN values
+        if (isNaN(yesPrice)) yesPrice = 0.5;
+        if (isNaN(noPrice)) noPrice = 0.5;
+        if (isNaN(volume)) volume = 0;
+        
+        // Skip markets with invalid data
+        if (!market.question || !market.id) {
+          console.log(`   Skipping invalid market: ${market.id}`);
+          continue;
+        }
+
+        try {
+          await prisma.polymarketMarket.upsert({
+            where: { id: market.id },
+            update: {
+              title: market.question,
+              category,
+              yesPrice,
+              noPrice,
+              volume,
+              lastUpdated: new Date(),
+            },
+            create: {
+              id: market.id,
+              title: market.question,
+              category,
+              yesPrice,
+              noPrice,
+              volume,
+              lastUpdated: new Date(),
+            },
+          });
+          totalFetched++;
+        } catch (error) {
+          if (error instanceof Error ) {
+            console.error(`   Failed to save market ${market.id}: ${error.message}`);
+          } else {
+            console.error(`❌ Error fetching ${category} markets:`, error);
+          }
+          
+        }
       }
     } catch (error) {
       console.error(`❌ Error fetching ${category} markets:`, error);
