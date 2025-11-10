@@ -8,14 +8,15 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  context: { params: { marketId: string } }
+  context: { params: Promise<{ marketId: string }> }
 ) {
-  try {
-    const { marketId } = context.params;
+  try { 
+    const { marketId } = await context.params; // ✅ Required for Next.js 15
 
     const { searchParams } = new URL(request.url);
-    const hours = parseInt(searchParams.get("hours") || "96"); // Default 4 days
+    const hours = Number(searchParams.get("hours") || "96");
 
+    // ✅ Fetch history snapshots
     const history = await prisma.marketSnapshot.findMany({
       where: {
         marketId,
@@ -26,19 +27,26 @@ export async function GET(
       orderBy: { capturedAt: "asc" },
     });
 
+    // ✅ Fetch the actual market
     const market = await prisma.market.findUnique({
       where: { id: marketId },
     });
+
+    if (!market) {
+      return NextResponse.json(
+        { error: "Market not found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       market,
       history,
       dataPoints: history.length,
-      timeRange: `${hours} hours`,
+      timeRangeHours: hours,
     });
-  } catch (error) {
-    console.error("Error fetching market history:", error);
-
+  } catch (err) {
+    console.error("Error fetching market history:", err);
     return NextResponse.json(
       { error: "Failed to fetch market history" },
       { status: 500 }
