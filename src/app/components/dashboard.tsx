@@ -126,7 +126,7 @@ export default function Top20Dashboard() {
                 </h1>
                 <p className="text-violet-300 text-sm mt-1 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
-                  Highest 24h Volume • Updated Every 4 Hours
+                  Highest 24h Volume • Updated daily
                 </p>
               </div>
             </div>
@@ -335,7 +335,7 @@ export default function Top20Dashboard() {
       <footer className="relative mt-16 border-t border-white/5 bg-black/20 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-slate-500 text-sm">
-            Updates every 4 hours • Sorted by 24-hour volume • Powered by PolyMarket API
+            Updates daily • Sorted by 24-hour volume • Powered by PolyMarket API • usiiDev 2025
           </p>
         </div>
       </footer>
